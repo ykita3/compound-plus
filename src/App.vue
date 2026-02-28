@@ -337,4 +337,60 @@ th {
 .favorite-list {
   padding-top: 8px;
 }
+/* --- スマホ対応（画面幅が 768px 以下の時） --- */
+@media (max-width: 768px) {
+  .container {
+    /* 100%から左右のパディング分を引く設定にする */
+    width: 100%;
+    max-width: 100vw; /* 画面幅を超えないように強制 */
+    padding: 15px;
+    box-sizing: border-box; /* 枠線や余白を幅に含める */
+    overflow-x: hidden; /* 万が一の中身のはみ出しを隠す */
+  }
+
+  .dashboard {
+    display: flex; /* gridよりflexの方がスマホでは制御しやすい */
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+
+  header {
+    text-align: center; /* タイトルを中央寄せに */
+    margin-bottom: 10px;
+  }
+
+  .input-panel {
+    margin-bottom: 30px; /* 入力パネルの下に余白を作る */
+    width: 100%;
+  }
+
+  .summary-card {
+    padding: 20px 0;
+    align-items: center;
+    width: 100%;
+  }
+
+  .total-amount {
+    font-size: 2.2rem; /* スマホでは金額の文字を少し小さく */
+  }
+
+  .table-container {
+    max-height: none; /* スマホではテーブルを全部見せる（または固定高さを調整） */
+    overflow-x: auto; /* 横幅が狭い時にテーブルを横スクロール可能に */
+  }
+
+  /* 入力しやすさのために、スマホではフォントを16px以上に（自動ズーム防止） */
+  .input-group input {
+    font-size: 16px;
+  }
+
+  .result-panel {
+    width: 100%;
+  }
+  .input-panel {
+    margin-bottom: 20px;
+    padding: 15px; /* スマホではパディングを少し詰めるとスッキリするよ */
+  }
+}
 </style>
