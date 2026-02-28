@@ -97,7 +97,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 const startAge = ref(25);
 const endAge = ref(65);
@@ -126,14 +126,14 @@ onMounted(() => {
   // 2. ログイン状態の復元
   const token = localStorage.getItem('user_token');
   if (token) {
-    user.value = jwt_decode(token);
+    user.value = jwtDecode(token);
     isLoggedIn.value = true;
   }
 
   // 3. Google ログインボタンの初期化
   if (window.google) {
     window.google.accounts.id.initialize({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID, // Vercelの環境変数
+      client_id: '61911223747-da5qv64n8tvvnfuikkbakh6g6ugu2fpm.apps.googleusercontent.com',
       callback: handleCredentialResponse,
     });
     // ログインしていない時だけボタンを出す
@@ -143,22 +143,14 @@ onMounted(() => {
   }
 });
 
-const renderGoogleButton = () => {
-  setTimeout(() => {
-    const btnRoot = document.getElementById('google-login-btn');
-    if (btnRoot) {
-      window.google.accounts.id.renderButton(btnRoot, { theme: 'outline', size: 'large' });
-    }
-  }, 100);
-};
-
 const handleCredentialResponse = (response) => {
-  const userData = jwt_decode(response.credential);
+  // jwt-decodeを使ってGoogleから届いた情報を読み取る
+  const userData = jwtDecode(response.credential);
   user.value = userData;
   isLoggedIn.value = true;
   localStorage.setItem('user_token', response.credential);
 
-  // テストデータの注入
+  // 初めての人用にテストデータをプレゼント
   const testData = [
     {
       id: 'test-user-gold',
@@ -179,6 +171,15 @@ const handleCredentialResponse = (response) => {
     favorites.value = testData;
     localStorage.setItem('compound_favorites', JSON.stringify(testData));
   }
+};
+
+const renderGoogleButton = () => {
+  setTimeout(() => {
+    const btnRoot = document.getElementById('google-login-btn');
+    if (btnRoot) {
+      window.google.accounts.id.renderButton(btnRoot, { theme: 'outline', size: 'large' });
+    }
+  }, 100);
 };
 
 const logout = () => {
@@ -261,37 +262,6 @@ const finalBalance = computed(() =>
 const finalPrincipal = computed(() =>
   simulationData.value.length > 0 ? simulationData.value[simulationData.value.length - 1].principal : 0,
 );
-// Googleログイン成功時の処理
-const handleCredentialResponse = (response) => {
-  const userData = jwt_decode(response.credential);
-  user.value = userData;
-  isLoggedIn.value = true;
-
-  localStorage.setItem('user_token', response.credential);
-
-  // ★ ここで「テストユーザー」用の初期データをローカルストレージに保存
-  const testData = [
-    {
-      id: 'test-user-gold',
-      name: 'テスト：ガチ運用プラン',
-      config: {
-        startAge: 25,
-        endAge: 65,
-        initialAmount: 200,
-        monthlyInvestment: 10,
-        annualRate: 5,
-        stepAge: 40,
-        monthlyInvestment2: 20,
-      },
-    },
-  ];
-
-  // まだ「お気に入り」が1つもない場合だけ、このテストデータをセット
-  if (!localStorage.getItem('compound_favorites')) {
-    localStorage.setItem('compound_favorites', JSON.stringify(testData));
-    favorites.value = testData; // 画面上のリストにも即反映
-  }
-};
 </script>
 
 <style scoped>
