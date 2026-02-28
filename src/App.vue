@@ -1,7 +1,19 @@
 <template>
   <div class="container">
-    <div class="dashboard">
+    <div v-if="!isLoggedIn" class="login-screen">
+      <div class="login-card">
+        <h1>Compound Plus <span class="plus">+</span></h1>
+        <p>シミュレーションを始めるにはログインしてください</p>
+        <div id="google-login-btn"></div>
+      </div>
+    </div>
+    <div v-else class="dashboard">
       <header>
+        <div class="user-info">
+          <img :src="user.picture" class="user-icon" v-if="user.picture" />
+          <span>{{ user.name }} さんの資産計画</span>
+          <button @click="logout" class="btn-logout">ログアウト</button>
+        </div>
         <h1>Compound Plus <span class="plus">+</span></h1>
         <p class="subtitle">資産運用のシミュレーション</p>
       </header>
@@ -85,6 +97,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import jwt_decode from 'jwt-decode';
 
 const startAge = ref(25);
 const endAge = ref(65);
@@ -95,7 +108,12 @@ const stepAge = ref(35);
 const monthlyInvestment2 = ref(10);
 const favorites = ref([]);
 
+// --- ログイン管理用の追加変数 ---
+const isLoggedIn = ref(false);
+const user = ref(null);
+
 onMounted(() => {
+  // 1. ローカルストレージからお気に入りを復元
   const saved = localStorage.getItem('compound_favorites');
   if (saved) {
     try {
@@ -104,7 +122,69 @@ onMounted(() => {
       favorites.value = [];
     }
   }
+
+  // 2. ログイン状態の復元
+  const token = localStorage.getItem('user_token');
+  if (token) {
+    user.value = jwt_decode(token);
+    isLoggedIn.value = true;
+  }
+
+  // 3. Google ログインボタンの初期化
+  if (window.google) {
+    window.google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID, // Vercelの環境変数
+      callback: handleCredentialResponse,
+    });
+    // ログインしていない時だけボタンを出す
+    if (!isLoggedIn.value) {
+      renderGoogleButton();
+    }
+  }
 });
+
+const renderGoogleButton = () => {
+  setTimeout(() => {
+    const btnRoot = document.getElementById('google-login-btn');
+    if (btnRoot) {
+      window.google.accounts.id.renderButton(btnRoot, { theme: 'outline', size: 'large' });
+    }
+  }, 100);
+};
+
+const handleCredentialResponse = (response) => {
+  const userData = jwt_decode(response.credential);
+  user.value = userData;
+  isLoggedIn.value = true;
+  localStorage.setItem('user_token', response.credential);
+
+  // テストデータの注入
+  const testData = [
+    {
+      id: 'test-user-gold',
+      name: 'テスト：ガチ運用プラン',
+      config: {
+        startAge: 25,
+        endAge: 65,
+        initialAmount: 200,
+        monthlyInvestment: 10,
+        annualRate: 5,
+        stepAge: 40,
+        monthlyInvestment2: 20,
+      },
+    },
+  ];
+
+  if (favorites.value.length === 0) {
+    favorites.value = testData;
+    localStorage.setItem('compound_favorites', JSON.stringify(testData));
+  }
+};
+
+const logout = () => {
+  localStorage.removeItem('user_token');
+  location.reload(); // 一番確実に状態をリセット
+};
 
 const saveFavorite = () => {
   const name = prompt('プラン名を入力', `プラン ${favorites.value.length + 1}`);
@@ -181,6 +261,37 @@ const finalBalance = computed(() =>
 const finalPrincipal = computed(() =>
   simulationData.value.length > 0 ? simulationData.value[simulationData.value.length - 1].principal : 0,
 );
+// Googleログイン成功時の処理
+const handleCredentialResponse = (response) => {
+  const userData = jwt_decode(response.credential);
+  user.value = userData;
+  isLoggedIn.value = true;
+
+  localStorage.setItem('user_token', response.credential);
+
+  // ★ ここで「テストユーザー」用の初期データをローカルストレージに保存
+  const testData = [
+    {
+      id: 'test-user-gold',
+      name: 'テスト：ガチ運用プラン',
+      config: {
+        startAge: 25,
+        endAge: 65,
+        initialAmount: 200,
+        monthlyInvestment: 10,
+        annualRate: 5,
+        stepAge: 40,
+        monthlyInvestment2: 20,
+      },
+    },
+  ];
+
+  // まだ「お気に入り」が1つもない場合だけ、このテストデータをセット
+  if (!localStorage.getItem('compound_favorites')) {
+    localStorage.setItem('compound_favorites', JSON.stringify(testData));
+    favorites.value = testData; // 画面上のリストにも即反映
+  }
+};
 </script>
 
 <style scoped>
@@ -337,6 +448,69 @@ th {
 .favorite-list {
   padding-top: 8px;
 }
+
+/* --- ログイン画面のスタイル --- */
+.login-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+}
+
+.login-card {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.login-card h1 {
+  margin-bottom: 10px;
+}
+
+.login-card p {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+#google-login-btn {
+  display: flex;
+  justify-content: center;
+}
+
+/* --- ユーザー情報のスタイル --- */
+.user-info {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.user-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+}
+
+.btn-logout {
+  background: #eee;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-logout:hover {
+  background: #ddd;
+}
+
 /* --- スマホ対応（画面幅が 768px 以下の時） --- */
 @media (max-width: 768px) {
   .container {
@@ -391,6 +565,10 @@ th {
   .input-panel {
     margin-bottom: 20px;
     padding: 15px; /* スマホではパディングを少し詰めるとスッキリするよ */
+  }
+  .user-info {
+    justify-content: center;
+    margin-bottom: 20px;
   }
 }
 </style>
