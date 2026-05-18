@@ -357,7 +357,7 @@ h1 {
   margin-bottom: 10px;
 }
 .summary-card {
-  background: #005344;
+  background: #42b983;
   color: white;
   padding: 25px;
   border-radius: 12px;
